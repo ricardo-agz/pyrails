@@ -1,15 +1,21 @@
 # PyRails
 
-PyRails is a lightweight, opinionated, batteries-included Python web framework built on top of FastAPI and MongoEngine. It draws inspiration from Ruby on Rails to provide a productive and enjoyable development experience.
+PyRails is a lightweight, opinionated, batteries-included Python web framework built on top of FastAPI and MongoEngine.   
+It is means to provide helpful, lightweight abstractions to enable standard ways of implementing common patters to 
+prevent the SaaSification of the developer stack. 
+
+**The goal is to enhance not inhibit.**
+
 
 ## Features
 
-- FastAPI-based web framework with MongoEngine ORM
+- Built on top of FastAPI and MongoEngine ODM
 - CLI tool for project management and code generation
 - Built-in database management (MongoDB)
 - Support for both local and Docker-based development
 - Environment-specific configurations
 - Automatic API documentation
+
 
 ## Installation
 
