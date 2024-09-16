@@ -105,3 +105,6 @@ Dockerfile
 *.tmp
 
 code_structure.txt
+
+my_project/
+
