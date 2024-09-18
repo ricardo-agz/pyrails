@@ -167,12 +167,12 @@ def scaffold(name, fields):
     fields_code = ""
     pydantic_code = ""
     for field in fields:
-        # Determine if the field should be unique or optional
-        unique = field.endswith("^")
-        optional = field.endswith("_")
-
         # Split into name and type_ based on the first colon only
         name, type_ = field.split(":", 1)
+
+        # Determine if the field should be unique or optional
+        unique = name.endswith("^")
+        optional = name.endswith("_")
 
         # Remove the markers from the name
         name = name.rstrip("^_")
@@ -220,10 +220,13 @@ def scaffold(name, fields):
             # Standard field types
             mongo_field = mongoengine_type_mapping.get(type_.lower(), "StringField()")
             # Add required and unique attributes
+            field_attrs = []
             if not optional:
-                mongo_field = mongo_field.replace("()", "(required=True)")
+                field_attrs.append("required=True")
             if unique:
-                mongo_field = mongo_field.replace(")", ", unique=True)")
+                field_attrs.append("unique=True")
+            if field_attrs:
+                mongo_field = mongo_field.replace("()", f"({', '.join(field_attrs)})")
             pydantic_type = pydantic_type_mapping.get(type_.lower(), "str")
             fields_code += f"    {name} = {mongo_field}\n"
             pydantic_code += f"    {name}: {pydantic_type}\n"

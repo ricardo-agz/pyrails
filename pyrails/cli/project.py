@@ -30,6 +30,11 @@ def new(project_name):
         f.write("from .production import *\n")
         f.write("from .testing import *\n")
 
+    # Create .env file
+    with open(f"{project_name}/.env", "w") as f:
+        f.write("PYRAILS_ENV=development\n")
+        f.write("DEBUG=True\n")
+
     # Create main.py
     with open(f"{project_name}/main.py", "w") as f:
         f.write(main_template)

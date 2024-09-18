@@ -1,12 +1,17 @@
 from fastapi import FastAPI
-from .pyrails_config import Config
+from .config import Config
 from .exceptions import exception_handlers
 from .db.connect_db import db_manager
 
 
 class PyRailsApp(FastAPI):
-    def __init__(self, config: Config = None):
-        super().__init__()
+    def __init__(self, config: Config = None, **kwargs):
+        default_kwargs = {
+            "title": "PyRails",
+        }
+        kwargs = {**default_kwargs, **kwargs}
+
+        super().__init__(**kwargs)
 
         # Load configuration
         self.config = config or Config()

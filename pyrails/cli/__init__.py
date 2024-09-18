@@ -23,7 +23,7 @@ cli.add_command(db)
 
 
 @cli.command()
-@click.option("--port", default=8000, help="Port to run the server on")
+@click.option("--port", default=8080, help="Port to run the server on")
 @click.option("--host", default="127.0.0.1", help="Host to run the server on")
 @click.option("--docker", is_flag=True, help="Run the application in Docker")
 def run(port, host, docker):

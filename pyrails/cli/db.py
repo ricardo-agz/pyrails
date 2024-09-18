@@ -1,6 +1,6 @@
 import click
 from ..db.mongodb import start_mongodb, stop_mongodb
-from ..pyrails_config import Config
+from ..config import Config
 
 
 @click.group()

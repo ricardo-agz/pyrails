@@ -1,13 +1,15 @@
 main_template = """from pyrails import PyRailsApp
+from contextlib import asynccontextmanager
 from app.controllers import *
 
 
-app = PyRailsApp()
-
-
-@app.on_event("startup")
-async def connect_db():
+@asynccontextmanager
+async def lifespan(app: PyRailsApp):
     app.connect_db()
+    yield
+
+
+app = PyRailsApp(lifespan=lifespan)
 
 
 if __name__ == "__main__":
