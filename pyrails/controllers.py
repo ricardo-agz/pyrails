@@ -70,7 +70,9 @@ class WebSocketManager:
 
     async def broadcast(self, path: str, message: str):
         connections = self.active_connections.get(path, [])
-        logger.info(f"Broadcasting message to {len(connections)} connections at path: {path}")
+        logger.info(
+            f"Broadcasting message to {len(connections)} connections at path: {path}"
+        )
         for connection in connections:
             try:
                 await connection.send_text(message)
@@ -80,7 +82,9 @@ class WebSocketManager:
 
     async def send_to_room(self, room: str, message: str):
         connections = self.active_rooms.get(room, set())
-        logger.info(f"Sending message to room '{room}' with {len(connections)} connections")
+        logger.info(
+            f"Sending message to room '{room}' with {len(connections)} connections"
+        )
         for connection in connections:
             try:
                 await connection.send_text(message)
