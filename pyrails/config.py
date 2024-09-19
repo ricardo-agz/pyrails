@@ -2,14 +2,11 @@ import os
 import importlib.util
 import sys
 import traceback
-import logging
 from dotenv import load_dotenv
+from pyrails.logger import logger
+
 
 load_dotenv()
-
-# Set up logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 
 class Config:

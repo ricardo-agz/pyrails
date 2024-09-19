@@ -16,6 +16,9 @@ setup(
         "cryptography",
         "websockets",
         "bcrypt",
+        "jinja2",
+        "requests",
+        "httpx",
     ],
     entry_points="""
         [console_scripts]

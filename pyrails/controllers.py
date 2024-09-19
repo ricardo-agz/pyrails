@@ -3,11 +3,7 @@ from collections import defaultdict
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, WebSocketException
 from functools import wraps
 import inspect
-import logging
-
-# Set up logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+from pyrails.logger import logger
 
 
 def websocket(path: str):

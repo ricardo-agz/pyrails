@@ -2,6 +2,7 @@ from mongoengine import connect, register_connection
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 import certifi
+from pyrails.logger import logger
 
 
 class DatabaseManager:
@@ -21,7 +22,7 @@ class DatabaseManager:
         db_host = f"{db_url}/{db_name}?retryWrites=true&w=majority"
         ssl_kwargs = {} if not ssl_reqs else {"ssl": True, "tlsCAFile": certifi.where()}
 
-        print(
+        logger.info(
             f"Connecting to database '{db_name}' with alias '{alias}' at: {db_host}..."
         )
 
@@ -44,13 +45,15 @@ class DatabaseManager:
             # Store the connection
             self.connections[alias] = client
 
-            print(
+            logger.info(
                 f"Connected to database '{db_name}' with alias '{alias}' at: {db_host}"
             )
             if is_default or self.default_alias == alias:
-                print(f"Set as default database connection.")
+                logger.info(f"Set as default database connection.")
         except PyMongoError as e:
-            print(f"Failed to connect to MongoDB '{db_name}' with alias '{alias}': {e}")
+            logger.error(
+                f"Failed to connect to MongoDB '{db_name}' with alias '{alias}': {e}"
+            )
             raise
 
     def get_connection(self, alias: str = None) -> MongoClient:

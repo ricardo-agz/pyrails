@@ -3,7 +3,6 @@ import os
 import shutil
 import subprocess
 import sys
-
 import click
 import uvicorn
 
@@ -98,6 +97,9 @@ def run_local_server(host, port):
         click.echo(
             "Make sure you're in the correct directory and all required packages are installed."
         )
+        import traceback
+
+        click.echo(traceback.format_exc())
     except Exception as e:
         click.echo(f"An error occurred while starting the server: {e}")
         import traceback
