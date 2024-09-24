@@ -98,10 +98,16 @@ pyrails generate model Comment post_id:str author:str content:str
 
 ### Generating a Controller
 
-To generate a controller for `Comment` resources:
+To generate a controller for `Auth` routes:
 
 ```
-pyrails generate controller Comments
+pyrails generate controller Auth
+```
+
+You can also pass in the routes to generate as arguments:
+
+```
+pyrails generate controller Auth post:login post:register
 ```
 
 ### More field types
