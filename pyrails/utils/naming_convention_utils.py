@@ -16,6 +16,12 @@ def to_snake_case(string):
     return "_".join(word.lower() for word in words)
 
 
+def to_kebab_case(string):
+    """Convert a string to kebab-case."""
+    words = split_on_case_change(string)
+    return "-".join(word.lower() for word in words)
+
+
 def to_camel_case(string):
     """Convert a string to camelCase."""
     words = split_on_case_change(string)

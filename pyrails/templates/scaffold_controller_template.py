@@ -1,45 +1,45 @@
 scaffold_controller_template = """from pyrails.controllers import Controller, get, post, put, delete
-from app.models.{resource_name_lower} import {resource_name}
+from app.models.{resource_name_snake} import {resource_name_pascal}
 from pyrails.exceptions import NotFoundError
 from fastapi import Request
 from pydantic import BaseModel
 
 
-class {resource_name}Create(BaseModel):
+class {resource_name_pascal}Create(BaseModel):
 {pydantic_fields}
 
-class {resource_name}Update(BaseModel):
+class {resource_name_pascal}Update(BaseModel):
 {pydantic_fields}
 
-class {resource_name_plural}Controller(Controller):
-    @get('/{resource_name_plural_lower}')
+class {resource_name_plural_pascal}Controller(Controller):
+    @get('/{resource_name_plural_kebab}')
     async def index(self, request: Request):
-        items = {resource_name}.find()
+        items = {resource_name_pascal}.find()
         return [item.to_dict() for item in items]
 
-    @get('/{resource_name_plural_lower}/{{id}}')
+    @get('/{resource_name_plural_kebab}/{{id}}')
     async def show(self, request: Request, id: str):
-        item = {resource_name}.find_by_id(id=id)
+        item = {resource_name_pascal}.find_by_id(id=id)
         if item:
             return item.to_dict()
         raise NotFoundError('{resource_name} not found')
 
-    @post('/{resource_name_plural_lower}')
+    @post('/{resource_name_plural_kebab}')
     async def create(self, request: Request, data: {resource_name}Create):
-        item = {resource_name}(**data.dict()).save()
+        item = {resource_name_pascal}(**data.dict()).save()
         return item.to_dict()
 
-    @put('/{resource_name_plural_lower}/{{id}}')
-    async def update(self, request: Request, id: str, data: {resource_name}Update):
-        item = {resource_name}.find_by_id_and_update(id=id, **data.dict(exclude_unset=True))
+    @put('/{resource_name_plural_kebab}/{{id}}')
+    async def update(self, request: Request, id: str, data: {resource_name_pascal}Update):
+        item = {resource_name_pascal}.find_by_id_and_update(id=id, **data.dict(exclude_unset=True))
         if item:
             return item.to_dict()
         raise NotFoundError('{resource_name} not found')
 
-    @delete('/{resource_name_plural_lower}/{{id}}')
+    @delete('/{resource_name_plural_kebab}/{{id}}')
     async def delete(self, request: Request, id: str):
-        item = {resource_name}.find_by_id_and_delete(id=id)
+        item = {resource_name_pascal}.find_by_id_and_delete(id=id)
         if item is None:
             raise NotFoundError('{resource_name} not found')
-        return {{'detail': '{resource_name} deleted'}}
+        return {{'detail': '{resource_name_pascal} deleted'}}
 """

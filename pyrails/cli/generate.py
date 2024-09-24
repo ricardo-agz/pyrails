@@ -121,20 +121,41 @@ def model(model_name, fields):
 
 @generate.command()
 @click.argument("controller_name")
-def controller(controller_name):
+@click.argument("methods", nargs=-1)  # Accept multiple methods
+def controller(controller_name, methods):
     """Generate a new controller."""
     snake_case_name = to_snake_case(controller_name)
     pascal_case_name = to_pascal_case(controller_name)
-    plural_snake_case = to_snake_case(pluralize(controller_name))
-    plural_pascal_case = to_pascal_case(pluralize(controller_name))
+    kebab_case_name = snake_case_name.replace("_", "-")
+
+    methods_code = "    pass\n" if not methods else ""
+
+    # Loop through provided methods and generate code for each
+    for method in methods:
+        http_method, action = method.split(":")
+        action_snake = to_snake_case(action)
+        action_kebab = action_snake.replace("_", "-")
+
+        if http_method.lower() == "get":
+            methods_code += f"    @get('/{kebab_case_name}/{action_kebab}')\n    async def {action_snake}(self, request):\n        pass\n\n"
+        elif http_method.lower() == "post":
+            methods_code += f"    @post('/{kebab_case_name}/{action_kebab}')\n    async def {action_snake}(self, request):\n        pass\n\n"
+        elif http_method.lower() == "put":
+            methods_code += f"    @put('/{kebab_case_name}/{action_kebab}')\n    async def {action_snake}(self, request):\n        pass\n\n"
+        elif http_method.lower() == "delete":
+            methods_code += f"    @delete('/{kebab_case_name}/{action_kebab}')\n    async def {action_snake}(self, request):\n        pass\n\n"
+        else:
+            click.echo(
+                f"Invalid HTTP method '{http_method}' provided for action '{action}'."
+            )
 
     content = controller_template.format(
-        resource_name=pascal_case_name,
-        resource_name_lower=snake_case_name,
-        resource_name_plural=plural_pascal_case,
-        resource_name_plural_lower=plural_snake_case,
-    )
-    controller_path = f"app/controllers/{plural_snake_case}_controller.py"
+        pascal_case_name=pascal_case_name,
+        methods_code=methods_code,
+    ).rstrip()
+    content += "\n"
+
+    controller_path = f"app/controllers/{snake_case_name}_controller.py"
     os.makedirs(os.path.dirname(controller_path), exist_ok=True)
     with open(controller_path, "w") as f:
         f.write(content)
@@ -144,10 +165,10 @@ def controller(controller_name):
     if not os.path.exists(init_path):
         with open(init_path, "w") as f:
             f.write(
-                f"from .{plural_snake_case}_controller import {plural_pascal_case}Controller\n"
+                f"from .{snake_case_name}_controller import {pascal_case_name}Controller\n"
             )
     else:
-        line_to_insert = f"from .{plural_snake_case}_controller import {plural_pascal_case}Controller"
+        line_to_insert = f"from .{snake_case_name}_controller import {pascal_case_name}Controller"
         insert_line_without_duplicating(init_path, line_to_insert)
 
     click.echo(f"Controller '{pascal_case_name}' generated at '{controller_path}'.")
@@ -162,6 +183,7 @@ def scaffold(name, fields):
     pascal_case_name = to_pascal_case(name)
     plural_snake_case = to_snake_case(pluralize(name))
     plural_pascal_case = to_pascal_case(pluralize(name))
+    plural_kebab_case = plural_snake_case.replace("_", "-")
 
     # Generate model
     fields_code = ""
@@ -243,10 +265,10 @@ def scaffold(name, fields):
 
     # Generate controller
     controller_content = scaffold_controller_template.format(
-        resource_name=pascal_case_name,
-        resource_name_lower=snake_case_name,
-        resource_name_plural=plural_pascal_case,
-        resource_name_plural_lower=plural_snake_case,
+        resource_name_pascal=pascal_case_name,
+        resource_name_snake=snake_case_name,
+        resource_name_plural_pascal=plural_pascal_case,
+        resource_name_plural_kebab=plural_kebab_case,
         pydantic_fields=pydantic_code,
     )
     controller_path = f"app/controllers/{plural_snake_case}_controller.py"
