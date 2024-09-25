@@ -1,11 +1,46 @@
 from collections import defaultdict
+from typing import Callable, Awaitable
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, WebSocketException
+from fastapi import (
+    APIRouter,
+    WebSocket,
+    WebSocketDisconnect,
+    WebSocketException,
+    Request,
+)
 from functools import wraps
 import inspect
+
+from pyrails.exceptions import UnauthorizedError, HTTPException
 from pyrails.logger import logger
 
 
+# Lifecycle Hook Decorators
+def before_request(func: Callable[..., Awaitable[None]]):
+    """Decorator to mark a method as a before_request hook."""
+    func._hook_type = "before_request"
+    return func
+
+
+def after_request(func: Callable[..., Awaitable[None]]):
+    """Decorator to mark a method as an after_request hook."""
+    func._hook_type = "after_request"
+    return func
+
+
+def on_connect(func: Callable[..., Awaitable[None]]):
+    """Decorator to mark a method as an on_websocket_connect hook."""
+    func._hook_type = "on_websocket_connect"
+    return func
+
+
+def on_disconnect(func: Callable[..., Awaitable[None]]):
+    """Decorator to mark a method as an on_websocket_disconnect hook."""
+    func._hook_type = "on_websocket_disconnect"
+    return func
+
+
+# Route Decorators
 def websocket(path: str):
     def decorator(func):
         func._websocket_route_info = {"path": path}
@@ -109,28 +144,63 @@ class ControllerMeta(type):
         new_cls = super().__new__(cls, name, bases, attrs)
         new_cls.router = router
         new_cls.websocket_manager = WebSocketManager()
-        instance = new_cls()
 
-        def create_websocket_endpoint(bound_method, path):
+        # Initialize lifecycle hooks if not present
+        new_cls._lifecycle_hooks = {
+            'before_request': [],
+            'after_request': [],
+            'on_websocket_connect': [],
+            'on_websocket_disconnect': []
+        }
+
+        # Copy hooks from direct base classes
+        for base in bases:
+            if hasattr(base, '_lifecycle_hooks'):
+                for hook_type, hooks in base._lifecycle_hooks.items():
+                    new_cls._lifecycle_hooks[hook_type].extend(hooks)
+
+        # Collect hooks defined in the current class
+        for attr_name, attr_value in attrs.items():
+            if callable(attr_value) and hasattr(attr_value, '_hook_type'):
+                hook_type = getattr(attr_value, '_hook_type')
+                new_cls._lifecycle_hooks[hook_type].append(attr_value)
+
+        def create_websocket_endpoint(bound_method: Callable[..., Awaitable[None]], path: str):
+            """Creates and registers a WebSocket endpoint."""
             @router.websocket(path)
             async def websocket_endpoint(websocket: WebSocket):
                 logger.info(f"Establishing WebSocket connection at path: {path}")
+
+                controller_instance = new_cls()
                 try:
+                    # Connect WebSocket
                     await new_cls.websocket_manager.connect(path, websocket)
-                    # Call on_connect lifecycle method
-                    await instance.on_websocket_connect(websocket)
+
+                    # Execute before_request hooks (if any specific for WebSocket, adjust accordingly)
+                    await controller_instance._execute_hooks('before_request', websocket)
+
+                    # Execute on_websocket_connect hooks
+                    await controller_instance._execute_hooks('on_websocket_connect', websocket)
+
                     # Call the user-defined WebSocket handler
-                    await bound_method(websocket)
+                    await bound_method(controller_instance, websocket)
                 except WebSocketDisconnect:
                     logger.info(f"WebSocket {websocket.client} disconnected")
+                except UnauthorizedError as ue:
+                    logger.warning(f"Unauthorized WebSocket connection: {ue.detail}")
+                    await websocket.close(code=1008)  # Policy Violation
                 except Exception as e:
                     logger.error(f"WebSocket error: {e}")
+                    await websocket.close(code=1011)  # Internal Error
                 finally:
-                    # Call on_disconnect lifecycle method
-                    await instance.on_websocket_disconnect(websocket)
+                    # Execute on_websocket_disconnect hooks
+                    await controller_instance._execute_hooks('on_websocket_disconnect', websocket)
+
+                    # Disconnect WebSocket
                     new_cls.websocket_manager.disconnect(path, websocket)
 
-        def create_http_endpoint(bound_method):
+        def create_http_endpoint(bound_method: Callable[..., Awaitable], path: str, methods: list[str]):
+            """Creates and registers an HTTP endpoint."""
             sig = inspect.signature(bound_method)
             params = list(sig.parameters.values())
             if params and params[0].name == "self":
@@ -139,13 +209,34 @@ class ControllerMeta(type):
 
             @wraps(bound_method)
             async def endpoint(*args, **kwargs):
-                if inspect.iscoroutinefunction(bound_method):
-                    return await bound_method(*args, **kwargs)
-                else:
-                    return bound_method(*args, **kwargs)
+                request: Request = kwargs.get('request')
+                controller_instance = new_cls()
+                response = None
+
+                try:
+                    try:
+                        # Execute before_request hooks
+                        await controller_instance._execute_hooks('before_request', request)
+
+                        # Call the user-defined endpoint handler
+                        response = await bound_method(controller_instance, *args, **kwargs)
+                    except Exception as e:
+                        logger.error(f"Error during request handling: {e}")
+                        raise e  # Re-raise the exception to be handled by FastAPI
+                finally:
+                    try:
+                        # Execute after_request hooks
+                        await controller_instance._execute_hooks('after_request', request)
+                    except Exception as e:
+                        logger.error(f"Error in after_request hook: {e}")
+                        # Decide whether to raise or log silently
+
+                return response
 
             endpoint.__signature__ = new_sig
-            return endpoint
+
+            for http_method in methods:
+                getattr(router, http_method.lower())(path)(endpoint)
 
         # Register both HTTP and WebSocket routes
         for attr_name, method in attrs.items():
@@ -155,26 +246,31 @@ class ControllerMeta(type):
                 path = route_info["path"]
                 methods = route_info["methods"]
 
-                bound_method = method.__get__(instance, new_cls)
-                endpoint = create_http_endpoint(bound_method)
-
-                for http_method in methods:
-                    getattr(router, http_method.lower())(path)(endpoint)
+                bound_method = method.__get__(None, new_cls)
+                create_http_endpoint(bound_method, path, methods)
 
             # WebSocket Routes
             elif hasattr(method, "_websocket_route_info"):
                 route_info = method._websocket_route_info
                 path = route_info["path"]
 
-                bound_method = method.__get__(instance, new_cls)
-
-                # Use factory function to avoid late binding
+                bound_method = method.__get__(None, new_cls)
                 create_websocket_endpoint(bound_method, path)
 
         return new_cls
 
 
 class Controller(metaclass=ControllerMeta):
+    """Base Controller class to be inherited by all controllers."""
+
+    async def before_request(self, obj):
+        """Override this method to perform actions before each request."""
+        pass
+
+    async def after_request(self, obj):
+        """Override this method to perform actions after each request."""
+        pass
+
     async def on_websocket_connect(self, websocket: WebSocket):
         """Override this method to handle actions when a WebSocket connects."""
         pass
@@ -182,3 +278,16 @@ class Controller(metaclass=ControllerMeta):
     async def on_websocket_disconnect(self, websocket: WebSocket):
         """Override this method to handle actions when a WebSocket disconnects."""
         pass
+
+    async def _execute_hooks(self, hook_name: str, obj):
+        """Execute all hooks of a given type."""
+        hooks = getattr(self.__class__, '_lifecycle_hooks', {}).get(hook_name, [])
+        for hook in hooks:
+            try:
+                await hook(self, obj)
+            except Exception as e:
+                logger.error(f"Error executing {hook_name} hook: {e}")
+                # Depending on the hook type, decide whether to continue or halt
+                if hook_name == 'before_request':
+                    raise e  # Critical for request handling
+                # For other hooks, continue execution

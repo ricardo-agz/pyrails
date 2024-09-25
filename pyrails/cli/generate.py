@@ -105,14 +105,10 @@ def model(model_name, fields):
     with open(model_path, "w") as f:
         f.write(content)
 
-    # Update __init__.py
+    # Update models __init__.py
     init_path = "app/models/__init__.py"
-    if not os.path.exists(init_path):
-        with open(init_path, "w") as f:
-            f.write(f"from .{snake_case_name} import {pascal_case_name}\n")
-    else:
-        line_to_insert = f"from .{snake_case_name} import {pascal_case_name}"
-        insert_line_without_duplicating(init_path, line_to_insert)
+    line_to_insert = f"from .{snake_case_name} import {pascal_case_name}"
+    insert_line_without_duplicating(init_path, line_to_insert)
 
     click.echo(
         f"Model '{pascal_case_name}' generated at '{model_path}' and added to {init_path}."
@@ -160,16 +156,10 @@ def controller(controller_name, methods):
     with open(controller_path, "w") as f:
         f.write(content)
 
-    # Update __init__.py
+    # Update controllers __init__.py
     init_path = "app/controllers/__init__.py"
-    if not os.path.exists(init_path):
-        with open(init_path, "w") as f:
-            f.write(
-                f"from .{snake_case_name}_controller import {pascal_case_name}Controller\n"
-            )
-    else:
-        line_to_insert = f"from .{snake_case_name}_controller import {pascal_case_name}Controller"
-        insert_line_without_duplicating(init_path, line_to_insert)
+    line_to_insert = f"from .{snake_case_name}_controller import {pascal_case_name}Controller"
+    insert_line_without_duplicating(init_path, line_to_insert)
 
     click.echo(f"Controller '{pascal_case_name}' generated at '{controller_path}'.")
 
@@ -254,9 +244,12 @@ def scaffold(name, fields):
             pydantic_code += f"    {name}: {pydantic_type}\n"
 
     model_content = model_template.format(
-        model_name=pascal_case_name,
+        resource_name_pascal=pascal_case_name,
+        resource_name_snake=snake_case_name,
+        resource_name_plural_pascal=plural_pascal_case,
+        resource_name_plural_kebab=plural_kebab_case,
+        resource_name_plural_snake=plural_snake_case,
         fields=fields_code,
-        table_name=snake_case_name,
     )
     model_path = f"app/models/{snake_case_name}.py"
     os.makedirs(os.path.dirname(model_path), exist_ok=True)
@@ -278,22 +271,12 @@ def scaffold(name, fields):
 
     # Update controllers __init__.py
     init_path = "app/controllers/__init__.py"
-    if not os.path.exists(init_path):
-        with open(init_path, "w") as f:
-            f.write(
-                f"from .{plural_snake_case}_controller import {plural_pascal_case}Controller\n"
-            )
-    else:
-        line_to_insert = f"from .{plural_snake_case}_controller import {plural_pascal_case}Controller"
-        insert_line_without_duplicating(init_path, line_to_insert)
+    line_to_insert = f"from .{plural_snake_case}_controller import {plural_pascal_case}Controller"
+    insert_line_without_duplicating(init_path, line_to_insert)
 
     # Update models __init__.py
     init_path = "app/models/__init__.py"
-    if not os.path.exists(init_path):
-        with open(init_path, "w") as f:
-            f.write(f"from .{snake_case_name} import {pascal_case_name}\n")
-    else:
-        line_to_insert = f"from .{snake_case_name} import {pascal_case_name}"
-        insert_line_without_duplicating(init_path, line_to_insert)
+    line_to_insert = f"from .{snake_case_name} import {pascal_case_name}"
+    insert_line_without_duplicating(init_path, line_to_insert)
 
     click.echo(f"Scaffold for '{pascal_case_name}' generated.")

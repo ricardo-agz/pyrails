@@ -1,9 +1,9 @@
 model_template = """from pyrails.models import *
 
 
-class {model_name}(BaseModel):
+class {resource_name_pascal}(BaseModel):
 {fields}
     meta = {{
-        "collection": "{table_name}"
+        "collection": "{resource_name_snake}"
     }}
 """

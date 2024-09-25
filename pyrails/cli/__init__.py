@@ -16,9 +16,10 @@ def cli():
     pass
 
 
-cli.add_command(new)
-cli.add_command(generate)
-cli.add_command(db)
+cli.add_command(new, name="new")
+cli.add_command(generate, name="generate")
+cli.add_command(generate, name="g")
+cli.add_command(db, name="db")
 
 
 @cli.command()

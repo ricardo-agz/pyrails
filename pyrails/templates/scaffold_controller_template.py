@@ -22,10 +22,10 @@ class {resource_name_plural_pascal}Controller(Controller):
         item = {resource_name_pascal}.find_by_id(id=id)
         if item:
             return item.to_dict()
-        raise NotFoundError('{resource_name} not found')
+        raise NotFoundError('{resource_name_pascal} not found')
 
     @post('/{resource_name_plural_kebab}')
-    async def create(self, request: Request, data: {resource_name}Create):
+    async def create(self, request: Request, data: {resource_name_pascal}Create):
         item = {resource_name_pascal}(**data.dict()).save()
         return item.to_dict()
 
@@ -34,12 +34,12 @@ class {resource_name_plural_pascal}Controller(Controller):
         item = {resource_name_pascal}.find_by_id_and_update(id=id, **data.dict(exclude_unset=True))
         if item:
             return item.to_dict()
-        raise NotFoundError('{resource_name} not found')
+        raise NotFoundError('{resource_name_pascal} not found')
 
     @delete('/{resource_name_plural_kebab}/{{id}}')
     async def delete(self, request: Request, id: str):
         item = {resource_name_pascal}.find_by_id_and_delete(id=id)
         if item is None:
-            raise NotFoundError('{resource_name} not found')
+            raise NotFoundError('{resource_name_pascal} not found')
         return {{'detail': '{resource_name_pascal} deleted'}}
 """
