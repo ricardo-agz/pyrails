@@ -158,7 +158,9 @@ def controller(controller_name, methods):
 
     # Update controllers __init__.py
     init_path = "app/controllers/__init__.py"
-    line_to_insert = f"from .{snake_case_name}_controller import {pascal_case_name}Controller"
+    line_to_insert = (
+        f"from .{snake_case_name}_controller import {pascal_case_name}Controller"
+    )
     insert_line_without_duplicating(init_path, line_to_insert)
 
     click.echo(f"Controller '{pascal_case_name}' generated at '{controller_path}'.")
@@ -271,7 +273,9 @@ def scaffold(name, fields):
 
     # Update controllers __init__.py
     init_path = "app/controllers/__init__.py"
-    line_to_insert = f"from .{plural_snake_case}_controller import {plural_pascal_case}Controller"
+    line_to_insert = (
+        f"from .{plural_snake_case}_controller import {plural_pascal_case}Controller"
+    )
     insert_line_without_duplicating(init_path, line_to_insert)
 
     # Update models __init__.py

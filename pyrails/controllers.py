@@ -147,26 +147,29 @@ class ControllerMeta(type):
 
         # Initialize lifecycle hooks if not present
         new_cls._lifecycle_hooks = {
-            'before_request': [],
-            'after_request': [],
-            'on_websocket_connect': [],
-            'on_websocket_disconnect': []
+            "before_request": [],
+            "after_request": [],
+            "on_websocket_connect": [],
+            "on_websocket_disconnect": [],
         }
 
         # Copy hooks from direct base classes
         for base in bases:
-            if hasattr(base, '_lifecycle_hooks'):
+            if hasattr(base, "_lifecycle_hooks"):
                 for hook_type, hooks in base._lifecycle_hooks.items():
                     new_cls._lifecycle_hooks[hook_type].extend(hooks)
 
         # Collect hooks defined in the current class
         for attr_name, attr_value in attrs.items():
-            if callable(attr_value) and hasattr(attr_value, '_hook_type'):
-                hook_type = getattr(attr_value, '_hook_type')
+            if callable(attr_value) and hasattr(attr_value, "_hook_type"):
+                hook_type = getattr(attr_value, "_hook_type")
                 new_cls._lifecycle_hooks[hook_type].append(attr_value)
 
-        def create_websocket_endpoint(bound_method: Callable[..., Awaitable[None]], path: str):
+        def create_websocket_endpoint(
+            bound_method: Callable[..., Awaitable[None]], path: str
+        ):
             """Creates and registers a WebSocket endpoint."""
+
             @router.websocket(path)
             async def websocket_endpoint(websocket: WebSocket):
                 logger.info(f"Establishing WebSocket connection at path: {path}")
@@ -177,10 +180,14 @@ class ControllerMeta(type):
                     await new_cls.websocket_manager.connect(path, websocket)
 
                     # Execute before_request hooks (if any specific for WebSocket, adjust accordingly)
-                    await controller_instance._execute_hooks('before_request', websocket)
+                    await controller_instance._execute_hooks(
+                        "before_request", websocket
+                    )
 
                     # Execute on_websocket_connect hooks
-                    await controller_instance._execute_hooks('on_websocket_connect', websocket)
+                    await controller_instance._execute_hooks(
+                        "on_websocket_connect", websocket
+                    )
 
                     # Call the user-defined WebSocket handler
                     await bound_method(controller_instance, websocket)
@@ -194,12 +201,16 @@ class ControllerMeta(type):
                     await websocket.close(code=1011)  # Internal Error
                 finally:
                     # Execute on_websocket_disconnect hooks
-                    await controller_instance._execute_hooks('on_websocket_disconnect', websocket)
+                    await controller_instance._execute_hooks(
+                        "on_websocket_disconnect", websocket
+                    )
 
                     # Disconnect WebSocket
                     new_cls.websocket_manager.disconnect(path, websocket)
 
-        def create_http_endpoint(bound_method: Callable[..., Awaitable], path: str, methods: list[str]):
+        def create_http_endpoint(
+            bound_method: Callable[..., Awaitable], path: str, methods: list[str]
+        ):
             """Creates and registers an HTTP endpoint."""
             sig = inspect.signature(bound_method)
             params = list(sig.parameters.values())
@@ -209,24 +220,30 @@ class ControllerMeta(type):
 
             @wraps(bound_method)
             async def endpoint(*args, **kwargs):
-                request: Request = kwargs.get('request')
+                request: Request = kwargs.get("request")
                 controller_instance = new_cls()
                 response = None
 
                 try:
                     try:
                         # Execute before_request hooks
-                        await controller_instance._execute_hooks('before_request', request)
+                        await controller_instance._execute_hooks(
+                            "before_request", request
+                        )
 
                         # Call the user-defined endpoint handler
-                        response = await bound_method(controller_instance, *args, **kwargs)
+                        response = await bound_method(
+                            controller_instance, *args, **kwargs
+                        )
                     except Exception as e:
                         logger.error(f"Error during request handling: {e}")
                         raise e  # Re-raise the exception to be handled by FastAPI
                 finally:
                     try:
                         # Execute after_request hooks
-                        await controller_instance._execute_hooks('after_request', request)
+                        await controller_instance._execute_hooks(
+                            "after_request", request
+                        )
                     except Exception as e:
                         logger.error(f"Error in after_request hook: {e}")
                         # Decide whether to raise or log silently
@@ -281,13 +298,13 @@ class Controller(metaclass=ControllerMeta):
 
     async def _execute_hooks(self, hook_name: str, obj):
         """Execute all hooks of a given type."""
-        hooks = getattr(self.__class__, '_lifecycle_hooks', {}).get(hook_name, [])
+        hooks = getattr(self.__class__, "_lifecycle_hooks", {}).get(hook_name, [])
         for hook in hooks:
             try:
                 await hook(self, obj)
             except Exception as e:
                 logger.error(f"Error executing {hook_name} hook: {e}")
                 # Depending on the hook type, decide whether to continue or halt
-                if hook_name == 'before_request':
+                if hook_name == "before_request":
                     raise e  # Critical for request handling
                 # For other hooks, continue execution
