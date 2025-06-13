@@ -7,18 +7,23 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="metroapi",
-    version="0.0.9",
+    version="0.0.12",
     author="Ricardo Gonzalez",
     author_email="ricardo@rgon.me",
     description="Metro: A batteries-included web framework for the fastest development experience.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/ricardo-agz/metro",
-    packages=find_packages(exclude=["docs*", "conductor*"]),
+    packages=find_packages(exclude=["docs*"]),
+    include_package_data=True,
+    package_data={
+        "conductor.generator.init_project": ["metro_docs/*.md"],
+    },
     keywords=["web", "framework", "api"],
     install_requires=[
         "fastapi>=0.68.0,<1.0.0",
-        "mongoengine>=0.24.0",
+        "mongoengine>=0.29.1,<0.30",
+        "pymongo<4.9",
         "uvicorn>=0.15.0",
         "click>=8.0.0",
         "inflect>=5.3.0",

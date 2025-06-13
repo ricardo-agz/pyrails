@@ -1,3 +1,28 @@
+# Compatibility patch for mongoengine <1.0 with PyMongo >=4.9 where `_check_name` was removed.
+# The patch must run *before* mongoengine is imported so we place it at the very top of this file.
+import pymongo.database as _pymongo_database
+from pymongo.errors import InvalidName as _InvalidName
+
+if not hasattr(_pymongo_database, "_check_name"):
+
+    def _check_name(name: str) -> None:  # type: ignore
+        """Basic replica of the old private helper removed in PyMongo 4.9.
+        It performs minimal validation to keep legacy libraries (e.g., mongoengine
+        < 0.30) functional.
+        """
+        if not name:
+            raise _InvalidName("database name cannot be the empty string")
+
+        for invalid_char in [" ", ".", "$", "/", "\\", "\x00", '"']:
+            if invalid_char in name:
+                raise _InvalidName(
+                    "database names cannot contain the character %r" % invalid_char
+                )
+
+    # Expose the helper where mongoengine expects it.
+    _pymongo_database._check_name = _check_name  # type: ignore
+
+
 from mongoengine import connect, register_connection
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
